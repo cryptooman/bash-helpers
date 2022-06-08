@@ -34,7 +34,7 @@ function _iferr {
 # Usage:
 #   _waitInit 10
 #   for i in {1..10}; do
-#       (sleep 1; echo "$i: ok"; _waitDoneIfErr "$i: failed") &
+#       (sleep 1; _waitIfErr "$i: failed"; echo "$i: ok"; _waitDoneIfErr "$i: failed") &
 #   done
 #   _wait; _iferr "There were errors"
 
@@ -46,24 +46,34 @@ function _waitInit {
     > $_BH_WAIT_ERR_FILE; _iferr "_waitInit: failed to write error file: $_BH_WAIT_ERR_FILE"
 }
 
-# Skip error check
-function _waitDone {
-    echo "1" >> $_BH_WAIT_LOCK_FILE; _iferr "_waitDone: failed to write lock file: $_BH_WAIT_LOCK_FILE"
+function _waitIfErr {
+    local code=$?
+    local msg=$1    
+    if (( $code != 0 )); then
+        echo "1" >> $_BH_WAIT_LOCK_FILE; _iferr "_waitIfErr: failed to write lock file: $_BH_WAIT_LOCK_FILE"
+        echo "1" >> $_BH_WAIT_ERR_FILE; _iferr "_waitIfErr: failed to write error file: $_BH_WAIT_ERR_FILE"
+        _err "$msg" $code
+    fi    
 }
 
 function _waitDoneIfErr {
     local code=$?
     local msg=$1    
-    echo "1" >> $_BH_WAIT_LOCK_FILE; _iferr "_waitDoneIfErr failed to write lock file: $_BH_WAIT_LOCK_FILE"
+    echo "1" >> $_BH_WAIT_LOCK_FILE; _iferr "_waitDoneIfErr: failed to write lock file: $_BH_WAIT_LOCK_FILE"
     if (( $code != 0 )); then
-        echo "1" >> $_BH_WAIT_ERR_FILE; _iferr "_waitDoneIfErr failed to write error file: $_BH_WAIT_ERR_FILE"
+        echo "1" >> $_BH_WAIT_ERR_FILE; _iferr "_waitDoneIfErr: failed to write error file: $_BH_WAIT_ERR_FILE"
         _err "$msg" $code
     fi    
 }
 
+# Skip error check
+function _waitDone {
+    echo "1" >> $_BH_WAIT_LOCK_FILE; _iferr "_waitDone: failed to write lock file: $_BH_WAIT_LOCK_FILE"
+}
+
 function _wait {
     local want=$(head -1 $_BH_WAIT_LOCK_FILE)
-    [[ "$want" ]] || _err "_wait: failed to get 'want' from lock file: $_BH_WAIT_LOCK_FILE"        
+    [[ "$want" ]] || _err "_wait: failed to get control data from lock file: $_BH_WAIT_LOCK_FILE"
     local completed
     while (( 1 )); do        
         completed=$(tail -n+2 $_BH_WAIT_LOCK_FILE | wc -l)

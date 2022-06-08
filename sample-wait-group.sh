@@ -11,12 +11,15 @@ _waitInit 10
 
 for i in {1..10}; do
     
-    # This set of commands will be executed in a separate process
+    # This set of commands will be executed in a separate process (sub-process)
     (        
-    _echo "$i: sleep 1 sec ..."
-    sleep 1
+    _echo "$i: sleep 1 sec ..."     ; _waitIfErr "$i: failed"
+    sleep 1                         ; _waitIfErr  "$i: failed"
     _echo "$i: ok"
-        
+    
+    # _waitIfErr can be omitted if there is no need to check the status code of the previous command
+    
+    # _waitDoneIfErr is required to notify about completion of this sub-process
     _waitDoneIfErr "$i: failed"
     ) &
     
