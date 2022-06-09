@@ -30,7 +30,8 @@ function _iferr {
     fi
 }
 
-# Wait group (run commands concurrently)
+# Wait group
+# Run bash commands concurrently (~ in parallel). Wait till all commands completed. Check if any command ended with error.
 # Usage:
 #   _waitInit 10
 #   for i in {1..10}; do
