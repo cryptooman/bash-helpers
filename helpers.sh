@@ -8,68 +8,58 @@ function _echo {
 }
 
 # Print error status code and message, then exit
-# Usage: [[ <my-expr> ]] || _err "<failed-message>" <failed-code>
-function _err {
+# Usage: <cmd> || _err ["failed message"] [failed-code]
+#        <cmd1> | <cmd2> || _err ["failed message"] [failed-code]
+#        If 'failed-code' is omitted, then used exit code of the last executed command
+set -o pipefail
+function _err {  
+    local lastExitCode=$?
     local msg=$1
     local code=$2
-    if (( !code )); then
-        code=1
+    if (( ! code )); then
+        code=$lastExitCode
+    fi
+    if (( ! code )); then
+        code=1 # Default exit code
     fi
     echo "ERROR: [$code] $msg"
     exit $code
 }
 
-# If previous command returned non-zero status code: print error status code and message, then exit
-# Usage: <my-command>; iferr "<failed-message>"
-set -o pipefail
-function _iferr {
-    local code=$?
-    local msg=$1
-    if (( $code != 0 )); then
-        _err "$msg" $code
-    fi
-}
-
 # Wait group
 # Run bash commands concurrently (~ in parallel). Wait till all commands completed. Check if any command ended with error.
 # Usage:
-#   _waitInit 10
-#   for i in {1..10}; do
-#       (sleep 1; _waitIfErr "$i: failed"; echo "$i: ok"; _waitDoneIfErr "$i: failed") &
-#   done
-#   _wait; _iferr "There were errors"
+#    workers=10
+#    _waitInit $workers
+#    for i in $(eval echo "{1..$workers}"); do
+#        (
+#            echo "$i: doing long command ..." && sleep 1; _waitIfErr "$i: failed"
+#            echo "$i: success"
+#            _waitDone
+#        ) &    
+#    done
+#    _wait || _err "There were errors"
 
 readonly _BH_WAIT_LOCK_FILE="/dev/shm/_bh_wait_lock_`date +%s`_$RANDOM.tmp"
 readonly _BH_WAIT_ERR_FILE="/dev/shm/_bh_wait_err_`date +%s`_$RANDOM.tmp"
 
 function _waitInit {
-    echo "$1" > $_BH_WAIT_LOCK_FILE; _iferr "_waitInit: failed to write lock file: $_BH_WAIT_LOCK_FILE"
-    > $_BH_WAIT_ERR_FILE; _iferr "_waitInit: failed to write error file: $_BH_WAIT_ERR_FILE"
+    echo "$1" > $_BH_WAIT_LOCK_FILE || _err "_waitInit: failed to write lock file: $_BH_WAIT_LOCK_FILE"
+    > $_BH_WAIT_ERR_FILE || _err "_waitInit: failed to write error file: $_BH_WAIT_ERR_FILE"
 }
 
 function _waitIfErr {
     local code=$?
     local msg=$1    
     if (( $code != 0 )); then
-        echo "1" >> $_BH_WAIT_LOCK_FILE; _iferr "_waitIfErr: failed to write lock file: $_BH_WAIT_LOCK_FILE"
-        echo "1" >> $_BH_WAIT_ERR_FILE; _iferr "_waitIfErr: failed to write error file: $_BH_WAIT_ERR_FILE"
+        echo "1" >> $_BH_WAIT_LOCK_FILE || _err "_waitIfErr: failed to write lock file: $_BH_WAIT_LOCK_FILE"
+        echo "1" >> $_BH_WAIT_ERR_FILE || _err "_waitIfErr: failed to write error file: $_BH_WAIT_ERR_FILE"
         _err "$msg" $code
     fi    
 }
 
-function _waitDoneIfErr {
-    local code=$?
-    local msg=$1    
-    echo "1" >> $_BH_WAIT_LOCK_FILE; _iferr "_waitDoneIfErr: failed to write lock file: $_BH_WAIT_LOCK_FILE"
-    if (( $code != 0 )); then
-        echo "1" >> $_BH_WAIT_ERR_FILE; _iferr "_waitDoneIfErr: failed to write error file: $_BH_WAIT_ERR_FILE"
-        _err "$msg" $code
-    fi    
-}
-
-# Skip error check
 function _waitDone {
-    echo "1" >> $_BH_WAIT_LOCK_FILE; _iferr "_waitDone: failed to write lock file: $_BH_WAIT_LOCK_FILE"
+    echo "1" >> $_BH_WAIT_LOCK_FILE || _err "_waitDone: failed to write lock file: $_BH_WAIT_LOCK_FILE"
 }
 
 function _wait {
@@ -79,13 +69,13 @@ function _wait {
     while (( 1 )); do        
         completed=$(tail -n+2 $_BH_WAIT_LOCK_FILE | wc -l)
         if (( completed >= want )); then
-            rm $_BH_WAIT_LOCK_FILE; _iferr "_wait: failed to remove lock file: $_BH_WAIT_LOCK_FILE"            
+            rm $_BH_WAIT_LOCK_FILE || _err "_wait: failed to remove lock file: $_BH_WAIT_LOCK_FILE"            
             break
         fi                
         sleep 0.1
     done
     local errors=$(cat $_BH_WAIT_ERR_FILE | wc -l)
-    rm $_BH_WAIT_ERR_FILE; _iferr "_wait: failed to remove error file: $_BH_WAIT_ERR_FILE"
+    rm $_BH_WAIT_ERR_FILE || _err "_wait: failed to remove error file: $_BH_WAIT_ERR_FILE"
     if (( errors )); then        
         return 1
     fi
