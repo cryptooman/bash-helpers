@@ -49,13 +49,13 @@ function _waitInit {
 }
 
 function _waitIfErr {
-    local code=$?
-    local msg=$1    
-    if (( $code != 0 )); then
+    local lastExitCode=$?
+    local msg=$1
+    if (( lastExitCode != 0 )); then
         echo "1" >> $_BH_WAIT_LOCK_FILE || _err "_waitIfErr: failed to write lock file: $_BH_WAIT_LOCK_FILE"
         echo "1" >> $_BH_WAIT_ERR_FILE || _err "_waitIfErr: failed to write error file: $_BH_WAIT_ERR_FILE"
-        _err "$msg" $code
-    fi    
+        _err "$msg" $lastExitCode
+    fi
 }
 
 function _waitDone {
@@ -76,7 +76,7 @@ function _wait {
     done
     local errors=$(cat $_BH_WAIT_ERR_FILE | wc -l)
     rm $_BH_WAIT_ERR_FILE || _err "_wait: failed to remove error file: $_BH_WAIT_ERR_FILE"
-    if (( errors )); then        
+    if (( errors )); then
         return 1
     fi
 }
