@@ -8,9 +8,11 @@ function _echo {
 }
 
 # Print error status code and message, then exit
-# Usage: <cmd> || _err ["failed message"] [failed-code]
-#        <cmd1> | <cmd2> || _err ["failed message"] [failed-code]
-#        If 'failed-code' is omitted, then used exit code of the last executed command
+# Syntax: _err ["failed message"] [failed-code]
+#         If 'failed-code' is omitted, then used exit code of the last executed command
+# Usage: <cmd> || _err
+#        <cmd1> && ( <cmd2> || _err )
+#        <cmd1> | <cmd2> || _err
 set -o pipefail
 function _err {  
     local lastExitCode=$?
