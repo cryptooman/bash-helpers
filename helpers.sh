@@ -35,8 +35,8 @@ function _err {
 #    _waitInit $workers
 #    for i in $(eval echo "{1..$workers}"); do
 #        (
-#            echo "$i: doing long command ..." && sleep 1; _waitIfErr "$i: failed"
-#            echo "$i: success"
+#            _echo "$i: doing long command ..." && sleep 1; _waitIfErr "$i: failed"
+#            _echo "$i: success"
 #            _waitDone
 #        ) &    
 #    done
