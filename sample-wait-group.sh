@@ -1,7 +1,6 @@
 #!/bin/bash
 
 TIME_START=$(date +%s)
-
 SCRIPT_DIR=$(dirname `readlink -f "$0"`)
 source "$SCRIPT_DIR/helpers.sh"
 
