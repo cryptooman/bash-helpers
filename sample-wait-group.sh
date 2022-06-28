@@ -17,8 +17,8 @@ for i in $(eval echo "{1..$workers}"); do
     
     # This set of commands will be executed in a separate process (sub-process)
     (        
-        echo "$i: doing long command ..." && sleep 1; _waitIfErr "$i: failed"
-        echo "$i: success"
+        _echo "$i: doing long command ..." && sleep 1; _waitIfErr "$i: failed"
+        _echo "$i: success"
         _waitDone
         
         # _waitIfErr can be omitted if there is no need to check exit code of the last executed command

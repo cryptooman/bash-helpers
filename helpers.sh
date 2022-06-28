@@ -8,9 +8,11 @@ function _echo {
 }
 
 # Print error status code and message, then exit
-# Usage: <cmd> || _err ["failed message"] [failed-code]
-#        <cmd1> | <cmd2> || _err ["failed message"] [failed-code]
-#        If 'failed-code' is omitted, then used exit code of the last executed command
+# Syntax: _err ["failed message"] [failed-code]
+#         If 'failed-code' is omitted, then used exit code of the last executed command
+# Usage: <cmd> || _err
+#        <cmd1> && ( <cmd2> || _err )
+#        <cmd1> | <cmd2> || _err
 set -o pipefail
 function _err {  
     local lastExitCode=$?
@@ -33,8 +35,8 @@ function _err {
 #    _waitInit $workers
 #    for i in $(eval echo "{1..$workers}"); do
 #        (
-#            echo "$i: doing long command ..." && sleep 1; _waitIfErr "$i: failed"
-#            echo "$i: success"
+#            _echo "$i: doing long command ..." && sleep 1; _waitIfErr "$i: failed"
+#            _echo "$i: success"
 #            _waitDone
 #        ) &    
 #    done
