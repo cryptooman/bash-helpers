@@ -59,25 +59,25 @@ function sendToTelegram {
 # Run bash commands concurrently (~ in parallel). Wait till all commands completed. Check if any command ended with error.
 # Usage:
 #    workers=10
-#    _waitInit $workers
+#    waitInit $workers
 #    for i in $(eval echo "{1..$workers}"); do
 #        (
-#            _echo "$i: doing long command ..." && sleep 1; _waitIfErr "$i: failed"
+#            _echo "$i: doing long command ..." && sleep 1; waitIfErr "$i: failed"
 #            _echo "$i: success"
-#            _waitDone
+#            waitDone
 #        ) &    
 #    done
-#    _wait || _err "There were errors"
+#    waitGroup || _err "There were errors"
 
 readonly _BH_WAIT_LOCK_FILE="/dev/shm/_bh_wait_lock_`date +%s`_$RANDOM.tmp" || _err
 readonly _BH_WAIT_ERR_FILE="/dev/shm/_bh_wait_err_`date +%s`_$RANDOM.tmp" || _err
 
-function _waitInit {
+function waitInit {
     echo "$1" > $_BH_WAIT_LOCK_FILE || _err "_waitInit: failed to write lock file: $_BH_WAIT_LOCK_FILE"
     > $_BH_WAIT_ERR_FILE || _err "_waitInit: failed to write error file: $_BH_WAIT_ERR_FILE"
 }
 
-function _waitIfErr {
+function waitIfErr {
     local lastExitCode=$?
     local msg=$1
     if (( lastExitCode != 0 )); then
@@ -87,11 +87,11 @@ function _waitIfErr {
     fi
 }
 
-function _waitDone {
+function waitDone {
     echo "1" >> $_BH_WAIT_LOCK_FILE || _err "_waitDone: failed to write lock file: $_BH_WAIT_LOCK_FILE"
 }
 
-function _wait {
+function waitGroup {
     local want=$(head -1 $_BH_WAIT_LOCK_FILE)
     [[ "$want" ]] || _err "_wait: failed to get control data from lock file: $_BH_WAIT_LOCK_FILE"
     local completed
