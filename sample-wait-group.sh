@@ -1,6 +1,8 @@
 #!/bin/bash
 
-source "./helpers.sh"
+TIME_START=$(date +%s)
+SCRIPT_DIR=$(dirname `readlink -f "$0"`)
+source "$SCRIPT_DIR/helpers.sh"
 
 _echo "Run 10 set of commands concurrently (~ in parallel)"
 _echo "Wait till all commands completed"
@@ -26,4 +28,5 @@ done
 # Wait till all commands completed. Check if any command ended with error.
 _wait || _err "There were errors"
 
-_echo "Success"
+timeTaken=$(( $(date +%s) - $TIME_START ))
+_echo "All done ($timeTaken sec)"
