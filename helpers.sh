@@ -3,7 +3,7 @@
 #
 
 # Echo with current datetime
-function _echo {
+function _echo {    
     echo -e "`date '+%Y-%m-%d %H:%M:%S'`\t$@"
 }
 
@@ -28,6 +28,33 @@ function _err {
     exit $code
 }
 
+# Send message to Telegram
+# Usage:
+#   Basic:
+#       sendToTelegram "<telegram-token>" "<chat-id>" "My message ..."
+#   With host name and script name:
+#       HOST_NAME="$(hostname)"
+#       SCRIPT_NAME="$0"
+#       TELEGRAM_TOKEN="..."
+#       TELEGRAM_CHAT_ID="..."
+#       msg="My message ..."
+#       msg="$HOST_NAME@$SCRIPT_NAME: `printf "%s" \"$msg\"`" || _err
+#       sendToTelegram "$TELEGRAM_TOKEN" "$TELEGRAM_CHAT_ID" "$msg"
+function sendToTelegram {
+    local token="$1"
+    local chatId="$2"
+    local msg="$3"
+    [[ "$token" && "$chatId" && "$msg" ]] || _err "sendToTelegram: bad input"
+    
+    local len=$(printf "%s" "$msg" | wc -c) || _err        
+    if (( len > 4096 )); then
+        msg=$(printf "%s" "$msg" | head -c 4093) || _err
+        msg=$(printf "%s" "$msg...") || _err
+    fi        
+    curl -s -L --retry 1 --max-time 30 -X POST "https://api.telegram.org/bot$token/sendMessage" -d chat_id="$chatId" -d text="$msg" 1>/dev/null || _err
+    sleep 0.1 # To avoid ban by telegram
+}
+
 # Wait group
 # Run bash commands concurrently (~ in parallel). Wait till all commands completed. Check if any command ended with error.
 # Usage:
@@ -42,8 +69,8 @@ function _err {
 #    done
 #    _wait || _err "There were errors"
 
-readonly _BH_WAIT_LOCK_FILE="/dev/shm/_bh_wait_lock_`date +%s`_$RANDOM.tmp"
-readonly _BH_WAIT_ERR_FILE="/dev/shm/_bh_wait_err_`date +%s`_$RANDOM.tmp"
+readonly _BH_WAIT_LOCK_FILE="/dev/shm/_bh_wait_lock_`date +%s`_$RANDOM.tmp" || _err
+readonly _BH_WAIT_ERR_FILE="/dev/shm/_bh_wait_err_`date +%s`_$RANDOM.tmp" || _err
 
 function _waitInit {
     echo "$1" > $_BH_WAIT_LOCK_FILE || _err "_waitInit: failed to write lock file: $_BH_WAIT_LOCK_FILE"
