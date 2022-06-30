@@ -29,6 +29,8 @@ function _err {
 }
 
 # Send message to Telegram
+# Setup: 
+#   For urlencode: sudo apt install gridsite-clients
 # Usage:
 #   Basic:
 #       sendToTelegram "<telegram-token>" "<chat-id>" "My message ..."
@@ -46,11 +48,12 @@ function sendToTelegram {
     local msg="$3"
     [[ "$token" && "$chatId" && "$msg" ]] || _err "sendToTelegram: bad input"
     
+    msg=$(urlencode "$msg") || _err
     local len=$(printf "%s" "$msg" | wc -c) || _err        
     if (( len > 4096 )); then
         msg=$(printf "%s" "$msg" | head -c 4093) || _err
-        msg=$(printf "%s" "$msg...") || _err
-    fi        
+        msg=$(printf "%s..." "$msg") || _err
+    fi    
     curl -s -L --retry 1 --max-time 30 -X POST "https://api.telegram.org/bot$token/sendMessage" -d chat_id="$chatId" -d text="$msg" 1>/dev/null || _err
     sleep 0.1 # To avoid ban by telegram
 }
