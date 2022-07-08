@@ -42,6 +42,10 @@ function _err {
 #       msg="My message ..."
 #       msg="$HOST_NAME@$SCRIPT_NAME: `printf "%s" \"$msg\"`" || _err
 #       sendToTelegram "$TELEGRAM_TOKEN" "$TELEGRAM_CHAT_ID" "$msg"
+# Telegram API limits:
+#   https://core.telegram.org/bots/faq
+#   If you're sending bulk notifications to multiple users, the API will not allow more than 30 messages per second or so
+#   Bot will not be able to send more than 20 messages per minute to the same group
 function sendToTelegram {
     local token="$1"
     local chatId="$2"
@@ -55,7 +59,6 @@ function sendToTelegram {
         msg=$(printf "%s..." "$msg") || _err
     fi    
     curl -s -L --retry 1 --max-time 30 -X POST "https://api.telegram.org/bot$token/sendMessage" -d chat_id="$chatId" -d text="$msg" 1>/dev/null || _err
-    sleep 0.1 # To avoid ban by telegram
 }
 
 # Wait group
